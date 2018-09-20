@@ -1,0 +1,20 @@
+name: xai_env
+channels:
+    - https://conda.anaconda.org/kne
+    - https://conda.anaconda.org/tlatorre
+    - https://conda.anaconda.org/cjs14
+    - https://conda.anaconda.org/menpo
+dependencies:
+    -pandas==0.22.0
+    -numpy==1.14.5
+    -matplotlib==2.1.0
+    -seaborn==0.8.0
+    -scipy==1.1.0
+    -statsmodels==0.9.0
+    -pytest==3.2.1
+    -cython==0.28.3
+    -scikit-learn==0.19.2
+    - pip:
+        -shap==0.18.1
+        -lime==0.1.1.31
+        -xgboost==0.72

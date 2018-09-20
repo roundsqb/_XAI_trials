@@ -1,0 +1,85 @@
+version: 2
+jobs:
+  build:
+     docker:
+       - image: circleci/python:3.5-jessie-node-browsers
+     steps:
+       - checkout
+       - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -U "pip>=9.0, <10.0" "setuptools>=38.0, <39.0" wheel
+       - run:
+          name: Configure distutils with pypi-qb
+          command: |
+            mkdir ~/.pip
+            echo "[global]
+                  extra-index-url = https://${ENV_QB_ARTIFACTORY_USER}:${ENV_QB_ARTIFACTORY_PASSWORD}@quantumblack.jfrog.io/quantumblack/api/pypi/pypi-qb/simple
+                  index = https://${ENV_QB_ARTIFACTORY_USER}:${ENV_QB_ARTIFACTORY_PASSWORD}@quantumblack.jfrog.io/quantumblack/api/pypi/pypi-qb/simple" > ~/.pip/pip.conf
+            echo "[distutils]
+            index-servers = pypi-qb
+
+            [pypi-qb]
+            repository: https://quantumblack.jfrog.io/quantumblack/api/pypi/pypi-qb
+            username: ${ENV_QB_ARTIFACTORY_USER}
+            password: ${ENV_QB_ARTIFACTORY_PASSWORD}" > ~/.pypirc
+       - restore_cache:
+          keys:
+            - pip-packages-v1-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
+            - pip-packages-v1-{{ .Branch }}
+            - pip-packages-v1-
+       - run:
+          name: Force no-caching for master or develop
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "develop" ]; then
+              rm -r ~/project/venv/
+              python3 -m venv venv
+              . venv/bin/activate
+              pip install -U "pip>=9.0, <10.0" "setuptools>=38.0, <39.0" wheel
+            fi
+       - run:
+          name: Install requirements
+          command: |
+            . venv/bin/activate
+            pip install -r requirements.txt -U
+       - run:
+          name: Install test requirements
+          command: |
+            . venv/bin/activate
+            pip install -r test_requirements.txt -U
+       - save_cache:
+          paths:
+            - ~/project/venv/
+          key: pip-packages-v1-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
+       - run:
+          name: Run pylint and flake8
+          command: |
+            . venv/bin/activate
+            make lint
+       - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            make test
+       - run:
+          name: Install the package
+          command: |
+            . venv/bin/activate
+            make install
+#       - deploy:
+#          name: Publish package to pypi-qb
+#          command: |
+#            . venv/bin/activate
+#            VERSION=$(tools/python_version.sh xai)
+#            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+#              tools/python_version_dev_bump.sh xai
+#            fi
+#            if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "develop" ]; then
+#              make package
+#            fi
+#            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+#              tools/github_release.sh ${CIRCLE_PROJECT_USERNAME} ${CIRCLE_PROJECT_REPONAME} ${GITHUB_TOKEN} ${VERSION}
+#            fi
+#            git reset --hard
