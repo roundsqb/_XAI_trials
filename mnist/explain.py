@@ -227,7 +227,7 @@ def validate_L2X(n_feats, trained_model, x_val, pred_val, scores):
 	truncated_val = np.zeros(x_val.shape)
 
 	for i in range(x_val.shape[0]):
-		selected = np.argsort(scores[i,:])[-top_n::]
+		selected = np.argsort(scores[i,:])[-top_n::] #Change this to select top, bottom, middle etc
 		#selected = np.random.choice(range(784), size=top_n, replace=False)
 		selected_k_hot = np.zeros(784)
 		selected_k_hot[selected] = 1.0
